@@ -194,7 +194,7 @@ pred <- predict(modFit, newdata = crossVal)
 ```
 
 <b>Out of Sample Error</b>
-After making the prediction on ‘crossVal’ with my model I check the accuracy with the ‘confusionMatrix()’ function and  I get an accuracy of 99.47%. This estimate seems appropriate considering that on the submission part of the assignment, I got all the predictions correct.
+After making the prediction on ‘crossVal’ with my model I check the accuracy with the ‘confusionMatrix()’ function and  I get an accuracy of 99.6%. This estimate seems appropriate considering that on the submission part of the assignment, I got all the predictions correct.
 Check your error
 
 ```r
