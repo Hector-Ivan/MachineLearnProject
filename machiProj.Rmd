@@ -1,0 +1,74 @@
+Practical Machine Learning Project
+========================================================
+<h2>BackGround</h2>
+There is a current rise in the use of monitoring devices to measure oneself on many different dimensions. Products such as Nike’s FuelBand and Fitbit can measure your body’s physical activity and movement, making it easier to identify trends across activities, over time and in comparison with others. The scientific computing community has also seen a surge in the number of research papers related to ‘Human Activity Recognition’ (HAR) (see http://groupware.les.inf.puc-rio.br/har for more info). This research focuses on tracking volunteer’s movement for set time periods, accumulating large sets of data, and finding patterns through the application of machine learning algorithms. There are many practical applications to human activity monitoring such as devices that can be used to aid the elderly, track energy expenditure, help with weightloss and assist in weight lifting exercises. The data I will focus on monitored the quality of performance on weight lifting exercises. If you would like to read more about the data set or HAR in general, see the website detailed above.
+
+<h2>Weight Lifting Exercise Dataset</h2>
+Contrary to traditional HAR research which focuses on distinguishing between different activities (i.e., ‘standing’,  ‘walking’, ‘sitting’, etc.), the present research answers the ‘how’ a particular activity was done. Quality is measured on a five level factor variable called ‘classe’.  Six volunteers between the ages of 20-28 were used to perform 10 repetitions of a weightlifting task in 5 different manners. The first class ‘A’ represents the correct way of lifting, while the rest of the classes were improper lifting methods as judged by a weightlifting expert. Class ‘B’ indicated throwing the elbows to the front, class ‘C’ meant the subject lifted the dumbbell only halfway, class ‘D’ was lowering the dumbbell only halfway and class ‘E’ was when the subjects threw their hips to the front. To ensure all the participants could easily execute the exercise as designated by the class, a light, 1.25kg, dumbbell was used. 
+
+<h2>Packages That Will Be Utilized</h2>
+The 'AppliedPredictiveModeling' package includes a tool to partition the data sets, the 'caret' package will be used for its 'confusionMatrix' tool and the 'randomForest' package is to train the model using the 'randomForest()' function.
+```{r,cache=TRUE}
+install.packages("AppliedPredictiveModeling")
+install.packages("randomForest")
+install.packages("caret")
+library(AppliedPredictiveModeling)
+library(randomForest)
+library(caret)
+```
+<h2>Reading in Data</h2>
+Assuming the files 'pml-training.csv' and 'pml-testing.csv' are in your working directory, the following code will read those files into your workspace.
+```{r,cache=TRUE}
+training<- read.csv("pml-training.csv")
+testing<- read.csv("pml-testing.csv")
+```
+<h3>Model Creation</h3>
+A quick look at all the first entry in all the variables will reveal variables that won’t be useful in making predictions. Particularly any variables that are either: NA, empty strings or zero. If you extend the function below to include more observations, you can see that the pattern of empty strings, NA values and zeros holds, so using the first entry spot as an indicator of which variables will make poor predictors, makes sense. 
+```{r,cache=TRUE}
+head(training,1)
+```
+<h2>Data Cleaning</h2>
+My first task then, will be to clean the data. That is, remove NA's, zero values, empty strings and any useless features. For this purpose, I created a custom function  'checkCols()' checks the first entry of every column to see if it is an empty string, NA or 0 returning a logical vector. Next the 'which' function gives the indices of the vector that have a value of ‘TRUE’ (the ones that met the conditions described above). Finally, the numbers 1-7 (which correspond to unnecessary 
+variables in 'training') will be appended. The output of ‘checkCols()’ is a numerical vector ‘badVars’ which is a vector of all the unwanted features which will then be used to subset the training data set to only include the useful variables, creating a new data set named ‘cleanTrain’. ‘cleanTrain’ has 19622 observations with 46 variables reduced from the original 160. 
+```{r}
+checkCols<-function(x){
+    append(which(as.vector(v<-x[1,]=="" | is.na(x[1,]) | x[1,]==0))
+           , c(1,2,3,4,5,6,7) )
+    
+}
+badVars<- checkCols(training)
+```
+Subset including only the variables that will make good predictors.
+```{r}
+cleanTrain<- training[,-badVars]
+```
+<h2>Cross Validation</h2>
+In order to check the accuracy of the model that I’m about to train, I must first split my training set into a training (‘trainFin’) and a cross validiation set(‘crossVal’). ‘trainFin’ will have 70% of the observations and it’s on this data set that I will train my model ‘modFit’. On the other hand, ‘crossVal’ will have the remaining 30% of observations and I will use this to test the accuracy of my model.  I chose a simple approach of one training and one cross validation set due to the relatively small amount of observations. 
+NOTE- I chose to train my model with ‘randomForest()’ from the ‘randomForest’ package because the ‘caret’ version of  random forest, the ‘rf’ parameter in the ‘train()’ function, was too slow. 
+
+Split training data into training and cross validation sets;
+```{r}
+inTrain<- createDataPartition(y=cleanTrain$classe, p=0.7,list=FALSE)
+trainFin<- cleanTrain[inTrain,]
+crossVal<- cleanTrain[-inTrain,]
+```
+Train a random forest model;
+```{r}
+modFit<- randomForest(classe~., data=trainFin,keep.forest=TRUE)
+```
+Predict on the CV set;
+```{r}
+pred<- predict(modFit, newdata=crossVal)
+```
+<b>Out of Sample Error</b>
+After making the prediction on ‘crossVal’ with my model I check the accuracy with the ‘confusionMatrix()’ function and  I get an accuracy of 99.6%. This estimate seems appropriate considering that on the submission part of the assignment, I got all the predictions correct.
+Check your error
+```{r,cache=TRUE}
+confusionMatrix(crossVal$class,pred)
+```
+<h2>Code for Final Prediction on Test Set</h2>
+```{r,eval=FALSE}
+testFinal<- testing[,-badVars]
+predTest<- predict(modFit,newdata=testFinal)
+```
+
